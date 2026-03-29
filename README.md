@@ -76,3 +76,6 @@ lực.
 - Xuất dữ liệu RFM sang CSV để dùng cho clustering (K-means).
 - Tích hợp thêm Power BI hoặc Tableau để trực quan hóa nâng cao.
 - Phân tích giỏ hàng (basket analysis) để tìm sản phẩm thường mua cùng nhau.
+=======
+
+>>>>>>> c3415cf0fa6df92185df40c8866303c1f00e576f
