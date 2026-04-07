@@ -1,81 +1,123 @@
-UK Online Retail — Revenue Dashboard
+# Retail Data Strategy & Customer Intelligence POS
+## Project Scope
 
-📌 Giới thiệu Dự án này thực hiện phân tích dữ liệu bán lẻ trực tuyến (UK Online
-Retail) bằng Python, với mục tiêu:
+This project analyzes retail transaction data in `retail_visualized.ipynb` to build:
+- a clean analytical dataset,
+- customer behavior segmentation (RFM-style),
+- management dashboards for volume and revenue decisions.
 
-1. Làm sạch dữ liệu giao dịch.
-2. Tính toán các chỉ số doanh thu theo thời gian, quốc gia, sản phẩm.
-3. Thực hiện phân tích RFM (Recency, Frequency, Monetary) để phân khúc khách
-   hàng.
-4. Trực quan hóa kết quả bằng dashboard nhiều biểu đồ.
+---
 
-⚙️ Công nghệ sử dụng Python 3.x Pandas: xử lý và tổng hợp dữ liệu. Matplotlib:
-trực quan hóa dữ liệu. Matplotlib Gridspec: bố cục dashboard. Warnings: tắt cảnh
-báo không cần thiết.
+## Technical Pipeline (Notebook-driven)
 
-📂 Quy trình phân tích Load Data
+The pipeline below follows the exact flow implemented in `retail_visualized.ipynb`.
 
-Đọc file CSV retail_data.csv với encoding ISO-8859-1.
+### 1) Environment and database connection
+- Install and import: `ipython-sql`, `plotly`, `psycopg2`, `pandas`, `sqlalchemy`, `matplotlib`.
+- Connect to PostgreSQL and create SQLAlchemy engine.
 
-Data Cleaning
+### 2) Data exploration and cleaning
+- **Query 1 - Pre-cleaning variables**
+  - Baseline profile:
+    - `total_rows = 541,909`
+    - `invoices = 25,900`
+    - `customers = 4,372`
+    - `products = 4,070`
+    - `countries = 38`
+- **Query 2 - Data cleaning**
+  - Filter invalid/irrelevant rows and standardize transactional fields.
+- **Query 3 - Description deep clean**
+  - Detect inconsistent descriptions per `stock_code`.
+- **Query 4 - Description standardization**
+  - Consolidate each `stock_code` to one unified product description.
 
-Loại bỏ CustomerID bị null.
+### 3) Metrics engineering
 
-Giữ lại các giao dịch có Quantity > 0 và UnitPrice > 0.
+#### 3.1 General metrics
+- Build SQL views for business monitoring:
+  - `total_revenue`
+  - `top5_months`
+  - `top5_products`
+  - `country_customers`
 
-Chuyển đổi InvoiceDate sang kiểu datetime.
+#### 3.2 Customer metrics (RFM logic)
+- **Query 5 - Create `customer_metrics`**
+  - Features by `customer_id`:
+    - `frequency = COUNT(DISTINCT invoice_no)`
+    - `monetary = SUM(quantity * unit_price)`
+    - `lifespan = MAX(invoice_date) - MIN(invoice_date)` (days)
+- **Query 6 - Recency/lifespan segmentation**
+  - `< 60 days`: `1,962`
+  - `61-180 days`: `740`
+  - `> 180 days`: `1,632`
+- **Query 7 - Monetary by percentile**
+  - Split customers into `Copper`, `Silver`, `Gold`.
+- **Query 8 - Frequency by percentile**
+  - Split customers into frequency buckets.
+- **Query 9 - Behavior mapping**
+  - Final segment mapping from frequency x monetary matrix.
 
-Tạo cột Revenue = Quantity * UnitPrice.
+### 4) Visualization layer
+- **4.1 General metrics visualizing**
+  - Revenue scorecard, Top 5 peak months, Top 5 best-selling products, country distribution.
+- **4.2 Segment quantity and percentage**
+  - Segment distribution table + percentage share.
+- **4.3 Top 4 segment quantity visualization**
+  - Bar chart + donut chart for dominant segment groups.
+- **4.4 Segment revenue visualization**
+  - Revenue share by segment (`total_revenue`, `pct_revenue`).
 
-Tạo cột Month để phân tích theo tháng.
+---
 
-Aggregation
+## Key Insights
 
-Doanh thu theo tháng.
+1. **Segment design reality check**
+   - Initial 9-segment hypothesis operationally results in **8 active segments**.
+   - `Brand Fans` is missing under the current data-driven frequency/monetary logic.
 
-Doanh thu theo quốc gia (top 8).
+2. **Customer base concentration**
+   - Most customers are concentrated in:
+     - `One-time Customers`
+     - `Middle Customers`
+     - `Low Engagement Customers`
+   - This indicates a broad but low/medium-engagement customer base.
 
-Doanh thu theo sản phẩm (top 8).
+3. **High-value target groups**
+   - Strategic target segments identified in the notebook:
+     - `VIP`
+     - `Loyal Customers`
+     - `Big Spenders`
+     - `Key Customers`
 
-RFM Analysis
+4. **Revenue contribution is not proportional to customer count**
+   - `VIP` is the **largest revenue contributor**.
+   - `Middle Customers` is the **second-largest revenue contributor**.
+   - Some high-spend labels (e.g., `Big Spenders`, `Loyal Customers`) contribute less than `One-time Customers` when frequency and segment size are lower.
 
-Recency: số ngày kể từ lần mua gần nhất.
+5. **Managerial implication**
+   - Segment sizing alone is insufficient; decisions should combine:
+     - **segment size** (quantity share),
+     - **segment value** (revenue share),
+     - **behavioral profile** (frequency x monetary).
 
-Frequency: số lượng hóa đơn duy nhất.
+---
 
-Monetary: tổng doanh thu.
+## Data Schema Used in Pipeline
 
-Phân khúc khách hàng theo percentile (Low/Medium/High).
+Core columns processed:
+- `invoice_no`
+- `stock_code`
+- `description`
+- `quantity`
+- `invoice_date`
+- `unit_price`
+- `customer_id`
+- `country`
 
-Mapping sang nhóm hành vi: VIP, Potential Whale, Loyal Middle, Middle Risk,
-Brand Fans, Churn Risk.
+---
 
-Visualization (Dashboard)
+## Status
 
-Doanh thu theo tháng (line chart).
+- Technical flow in notebook is implemented end-to-end (cleaning -> metrics -> segmentation -> visualization).
+- Next extension options: region x segment strategy, monthly/half-year segment tracking, and forecasting actions.
 
-Doanh thu theo quốc gia (bar chart).
-
-Top sản phẩm theo doanh thu (bar chart).
-
-Tỷ trọng doanh thu theo nhóm RFM (donut chart).
-
-Số khách hàng theo nhóm RFM (bar chart).
-
-Doanh thu theo nhóm RFM theo tháng (stacked bar chart).
-
-📊 Kết quả File dashboard được lưu dưới dạng retail_dashboard.png.
-
-Dashboard hiển thị toàn cảnh doanh thu, phân khúc khách hàng, và sản phẩm chủ
-lực.
-
-🚀 Cách chạy pip install pandas matplotlib python retail_dashboard.py
-
-🔮 Hướng phát triển
-
-- Xuất dữ liệu RFM sang CSV để dùng cho clustering (K-means).
-- Tích hợp thêm Power BI hoặc Tableau để trực quan hóa nâng cao.
-- Phân tích giỏ hàng (basket analysis) để tìm sản phẩm thường mua cùng nhau.
-=======
-
->>>>>>> c3415cf0fa6df92185df40c8866303c1f00e576f
